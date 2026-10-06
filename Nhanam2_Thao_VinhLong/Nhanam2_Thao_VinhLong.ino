@@ -45,7 +45,7 @@ bool triggerOTA = false; // Thêm cờ báo hiệu cập nhật OTA
 
 bool thresholdChanged = false; // Cờ báo hiệu có sự thay đổi ngưỡng từ App
 
-String firmwareURL = "https://raw.githubusercontent.com/huyminhct2-jpg/Nhannam_V3_Thao_VinhLong/main/Nhanam2_Thao_VinhLong/esp8266.esp8266.nodemcuv2/Nhanam2_Thao_VinhLong.ino.bin";
+String firmwareURL = "https://raw.githubusercontent.com/huyminhct2-jpg/Nhannam_V3_Thao_VinhLong/main/Nhanam2_Thao_VinhLong/build/esp8266.esp8266.nodemcuv2/Nhanam2_Thao_VinhLong.ino.bin";
 
 bool kichAmRunning = false; // khai báo nút kích ẩm 
 
@@ -79,7 +79,7 @@ const char* updateUsername = "admin";
 const char* updatePassword = "admin";            
 
 // Cấu hình IP tĩnh (nếu muốn dùng IP tĩnh)
-IPAddress staticIP(192,168,1,251);               
+IPAddress staticIP(192,168,1,252);               
 IPAddress gateway(192,168,1,1);                  
 IPAddress subnet(255,255,255,0);                 
 IPAddress dns1(8,8,8,8);                         
