@@ -45,7 +45,7 @@ bool triggerOTA = false; // Thêm cờ báo hiệu cập nhật OTA
 
 bool thresholdChanged = false; // Cờ báo hiệu có sự thay đổi ngưỡng từ App
 
-String firmwareURL = "https://raw.githubusercontent.com/huyminhct2-jpg/Nhanam_V3_Khoi/main/Nhanam_V3/build/esp8266.esp8266.nodemcuv2/Nhanam_V3.ino.bin";
+String firmwareURL = "https://raw.githubusercontent.com/huyminhct2-jpg/Nhannam_V3_Thao_VinhLong/main/Nhanam1_Thao_VinhLong/build/esp8266.esp8266.nodemcuv2/Nhanam1_Thao_VinhLong.ino.bin";
 
 bool kichAmRunning = false; // khai báo nút kích ẩm 
 
@@ -68,7 +68,7 @@ const unsigned long LCDResetInterval = 1800000UL; // 30 phút = 1,800,000 ms -> 
 // =====================================================
 // ====== WIFI & OTA (CẤU HÌNH) =======================
 // =====================================================
-char auth[] = "vTbyVpeqYlWGp6m-G7AbhUp8BcxNG-3u"; // Token Blynk 
+char auth[] = "Du6Pr1bGzApF0znkVvBPmMwy6H3F41mV"; // Token Blynk 
 const char* ssid = "NHA NAM";                    // SSID WiFi
 const char* pass = "123456789@@";                // Mật khẩu WiFi
 
