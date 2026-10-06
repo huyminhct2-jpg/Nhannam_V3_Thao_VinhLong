@@ -68,7 +68,7 @@ const unsigned long LCDResetInterval = 1800000UL; // 30 phút = 1,800,000 ms -> 
 // =====================================================
 // ====== WIFI & OTA (CẤU HÌNH) =======================
 // =====================================================
-char auth[] = "Du6Pr1bGzApF0znkVvBPmMwy6H3F41mV"; // Token Blynk 
+char auth[] = "OQ2BbEHuzDhLEcAy4sEvaRd6B7MKwsfw"; // Token Blynk 
 const char* ssid = "NHA NAM";                    // SSID WiFi
 const char* pass = "123456789@@";                // Mật khẩu WiFi
 
