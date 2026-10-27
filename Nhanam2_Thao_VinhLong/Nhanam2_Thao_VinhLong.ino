@@ -68,9 +68,9 @@ const unsigned long LCDResetInterval = 1800000UL; // 30 phút = 1,800,000 ms -> 
 // =====================================================
 // ====== WIFI & OTA (CẤU HÌNH) =======================
 // =====================================================
-char auth[] = "9fjzPct2opgywdzaG5vio6kgio7WAl0Z"; // Token Blynk 
-const char* ssid = "NHA NAM";                    // SSID WiFi
-const char* pass = "123456789@@";                // Mật khẩu WiFi
+char auth[] = "ARqIKHm6tuH-BCPB2ogEoI_Xr78aYi0C"; // Token Blynk 
+const char* ssid = "TUONG THONG";                    // SSID WiFi
+const char* pass = "Giao2412";                // Mật khẩu WiFi
 
 // Thông tin cho OTA (web update)
 const char* host = "ESP";                        // Tên mDNS
@@ -79,7 +79,7 @@ const char* updateUsername = "admin";
 const char* updatePassword = "admin";            
 
 // Cấu hình IP tĩnh (nếu muốn dùng IP tĩnh)
-IPAddress staticIP(192,168,1,252);               
+IPAddress staticIP(192,168,1,242);               
 IPAddress gateway(192,168,1,1);                  
 IPAddress subnet(255,255,255,0);                 
 IPAddress dns1(8,8,8,8);                         
