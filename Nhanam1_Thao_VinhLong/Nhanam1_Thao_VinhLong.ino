@@ -63,7 +63,7 @@ WidgetLED led4(V15);                          // LED ảo relay4 (V15)
 BlynkTimer timer;                             // Timer nội bộ của Blynk (tương tự SimpleTimer)
 unsigned long lastTime1 = 0;                  // Thời điểm cập nhật hiển thị lần cuối (ms)
 unsigned long lastLCDResetTime = 0;           // Thời điểm reset LCD lần gần nhất (ms)
-const unsigned long LCDResetInterval = 1800000UL; // 30 phút = 1,800,000 ms -> dùng reset LCD để tránh lỗi hiển thị
+const unsigned long LCDResetInterval = 900000UL; // 15 phút  -> dùng reset LCD để tránh lỗi hiển thị
 
 // =====================================================
 // ====== WIFI & OTA (CẤU HÌNH) =======================
@@ -287,29 +287,52 @@ void ShowMode(const char* mode)
     lcd.print(mode);
     delay(1000);
 }
-void Display() {
-  if (millis() - lastTime1 > 2000) {  
-    sht30.get(); // 🔥 BẮT BUỘC PHẢI CÓ       
-    float t = sht30.cTemp;                     
-    float h = sht30.humidity;                  
-    
-    // CHỈ VẼ LÊN LCD KHI CÓ WIFI, MẤT WIFI THÌ NHƯỜNG MÀN HÌNH CHO CẢNH BÁO
-    if (WiFi.status() == WL_CONNECTED) {
-        Blynk.virtualWrite(V1, t);                 
-        Blynk.virtualWrite(V2, h);  
 
-        lcd.clear();                               
-        lcd.setCursor(0, 0); lcd.print("Nhiet do:"); 
-        lcd.setCursor(9, 0); lcd.print(t);          
-        lcd.setCursor(14, 0); lcd.write(223);       
-        lcd.setCursor(15, 0); lcd.print("C");       
-        lcd.setCursor(0, 1); lcd.print("Do am   :"); 
-        lcd.setCursor(9, 1); lcd.print(h);          
-        lcd.setCursor(14, 1); lcd.print("%");       
-    }
-    lastTime1 = millis();                       
+
+void Display() {
+  if (millis() - lastTime1 < 1000UL) return;
+  lastTime1 = millis();
+
+  // Cập nhật dữ liệu lên Blynk
+  if (Blynk.connected()) {
+    Blynk.virtualWrite(V1, sht30.cTemp);
+    Blynk.virtualWrite(V2, sht30.humidity);
   }
 }
+unsigned long lastSensorLCDUpdate = 0;
+void DisplaySensorLCD(float t, float h) {
+  if (millis() - lastSensorLCDUpdate < 1000UL) return;
+  lastSensorLCDUpdate = millis();
+
+  lcd.setCursor(0, 0);
+  lcd.print("Nhiet do:       ");
+  lcd.setCursor(9, 0);
+  lcd.print(t, 1);
+  lcd.write(223);
+  lcd.print("C ");
+
+  lcd.setCursor(0, 1);
+  lcd.print("Do am   :       ");
+  lcd.setCursor(9, 1);
+  lcd.print(h, 1);
+  lcd.print("% ");
+}
+
+void DisplayManual(float t, float h) {
+  lcd.setCursor(0, 0);
+  lcd.print("Nhiet do:       ");
+  lcd.setCursor(9, 0);
+  lcd.print(t, 1);
+  lcd.write(223);
+  lcd.print("C ");
+
+  lcd.setCursor(0, 1);
+  lcd.print("Do am   :       ");
+  lcd.setCursor(9, 1);
+  lcd.print(h, 1);
+  lcd.print("% ");
+}
+
 
 // =====================================================
 // ============ PROGRESS OTA % (V40) ====================
@@ -432,7 +455,7 @@ void loop() {
   if (startKichAm)
     {
         startKichAm = false;
-        KichAm36Phut();
+        KichAm();
     }
 
   if (triggerOTA) {
@@ -507,7 +530,7 @@ void loop() {
       else {
           // Kiểm tra vùng nhiệt độ lý tưởng (Reft1 đến Reft2)
           if (t <= Reft1 && t >= Reft2) {
-              
+            DisplaySensorLCD(t, h);
               // Nếu quạt CHƯA bật, tiến hành đếm giờ
               if (!isVentilating) {
                   // Mới vào vùng lý tưởng lần đầu
@@ -553,23 +576,28 @@ void loop() {
       }
           autoRunning = false;
       }
-    else {
-    Display();
+    
+else {
+  Display();
 
-    if (!kichAmRunning)
-    {
-        digitalWrite(relay1, button1 || timerStates[0]);
-        digitalWrite(relay2, button2);
-        digitalWrite(relay3, button3);
-        digitalWrite(relay4, button4);
-    }
+  if (!kichAmRunning) {
+    digitalWrite(relay1, button1 || timerStates[0]);
+    digitalWrite(relay2, button2);
+    digitalWrite(relay3, button3);
+    digitalWrite(relay4, button4);
+  }
 
-    led1.setValue(digitalRead(relay1)*255);
-    led2.setValue(digitalRead(relay2)*255);
-    led3.setValue(digitalRead(relay3)*255);
-    led4.setValue(digitalRead(relay4)*255);
+  // Chi hien thi nhiet do va do am khi o che do thu cong
+  if (Modeactive == 2 && !kichAmRunning) {
+    DisplayManual(t, h);
+  }
+
+  led1.setValue(digitalRead(relay1) * 255);
+  led2.setValue(digitalRead(relay2) * 255);
+  led3.setValue(digitalRead(relay3) * 255);
+  led4.setValue(digitalRead(relay4) * 255);
 }
-  } 
+}
   else {
     // Nếu sht30.get() != 0 => sensor không đọc được
     Serial.println("SENSOR NOT FOUND");
@@ -577,11 +605,13 @@ void loop() {
     lcd.setCursor(0, 0); lcd.print("SENSOR NOT FOUND"); // Hiển thị lỗi sensor trên LCD
   }
 
-  // Nếu đã vượt quá thời gian reset LCD, gọi resetLCD()
   if (millis() - lastLCDResetTime > LCDResetInterval) {
-    resetLCD();                   // Reset lại LCD (clear + re-init)
-    lastLCDResetTime = millis();  // Cập nhật thời điểm reset
+  // Chi reset LCD khi khong chay quy trinh
+  if (!autoRunning && !kichAmRunning) {
+    resetLCD();
+    lastLCDResetTime = millis();
   }
+}
 }
 
 // =====================================================
@@ -607,13 +637,12 @@ void autoAction(const char* line1, const char* line2,
 // =================hàm các trường hợp ===================
 // =======================================================
 
-void TCucCao() { autoAction("Nhiet do CUC CAO", "May Lanh: 30p", LOW, LOW, HIGH, 30 * 60000); }
+void TCucCao() { autoAction("Nhiet do CUC CAO", "May Lanh: 45p", LOW, LOW, HIGH, 45 * 60000); }
 
-void THigh1()  { autoAction("Nhiet do cao!", "Quat_3P", HIGH, LOW, LOW, 3 * 60000); }
+void THigh1()  { autoAction("Nhiet do cao!", "Quat_5P", HIGH, LOW, LOW, 5 * 60000); }
 void THigh2()  { autoAction("Nhiet do cao!", "Am_2P", LOW, HIGH, LOW, 2 * 60000); }
-void THigh3()  { autoAction("Nhiet do cao!", "Quat_1P", HIGH, LOW, LOW, 1 * 60000); }
+void THigh3()  { autoAction("Nhiet do cao!", "Quat_5P", HIGH, LOW, LOW, 5 * 60000); }
 void THigh4()  { autoAction("Kiem tra lai", "Nhiet do...", LOW, LOW, LOW, 1 * 60000); }
-
 
 void HLow1() { autoAction("Do am thap", "Bat: tao am", LOW, HIGH, LOW, 3 * 60000); }    
 void HLow2() { autoAction("Do am thap!", "Bat quat", HIGH, HIGH, LOW, 5000); }       
@@ -622,28 +651,38 @@ void HLow3() { autoAction("Do am thap!", "Bat tao lan 2", LOW, HIGH, LOW, 3 * 60
 void HHigh() { autoAction("Do am cao", "", HIGH, LOW, LOW, 3 * 60000); }
 
 // =======================================================
-// ================= // hàm kích ẩm 36ph =================
+// ================= // hàm kích ẩm  =================
 // =======================================================
-void KichAm36Phut()
+
+void KichAm()
 {
     thresholdChanged = false;
     kichAmRunning = true;
 
     for (int i = 0; i < 3 && kichAmRunning; i++)
     {
-        autoAction("KICH AM", "Tao am 10P", LOW, HIGH, LOW, 10 * 60000UL);
-        if (!kichAmRunning) break;
+        // BƯỚC 1: TẠO ẨM 15 PHÚT
+        autoAction("KICH AM", "Tao am 15P",
+                   LOW, HIGH, LOW, 15 * 60000UL);
+        if (!kichAmRunning || triggerOTA) break;
 
-        autoAction("KICH AM", "Quat 2P", HIGH, LOW, LOW, 2 * 60000UL);
+        // BƯỚC 2: NGHỈ 5 PHÚT - TẮT TẤT CẢ RELAY
+        autoAction("KICH AM", "Nghi 5P",
+                   LOW, LOW, LOW, 5 * 60000UL);
+        if (!kichAmRunning || triggerOTA) break;
+
+        // BƯỚC 3: HÚT RA 3 PHÚT
+        autoAction("KICH AM", "Hut ra 3P",
+                   HIGH, LOW, LOW, 3 * 60000UL);
     }
 
-   kichAmRunning = false;
-   thresholdChanged = false;
-   allOff();
+    kichAmRunning = false;
+    thresholdChanged = false;
+    allOff();
 
     Blynk.virtualWrite(V29, 0);
 
-    // Chỉ tự về AUTO nếu người dùng vẫn đang ở chế độ KÍCH ẨM
+    // Chỉ tự về AUTO nếu vẫn đang ở chế độ KÍCH ẨM
     if (Modeactive == 3)
     {
         Modeactive = 1;
@@ -652,6 +691,7 @@ void KichAm36Phut()
         ShowMode("AUTO");
     }
 }
+
 // =====================================================
 // ================= // Tắt tất cả relay =================
 // =====================================================
@@ -674,45 +714,57 @@ void resetVentilator() {
 // =====================================================
 // ================= KIỂM TRA WIFI =====================
 // =====================================================
+
 void checkWiFiStatus() {
   bool currentState = (WiFi.status() == WL_CONNECTED);
 
-  if (!currentState) { 
-    // Nếu mất mạng: Luôn hiện cảnh báo
-    lcd.clear();
-    lcd.setCursor(0, 0); lcd.print(">> WIFI OFF <<");
-    lcd.setCursor(0, 1); lcd.print("Dang ket noi... ");
-  } 
-  else if (currentState && !lastWiFiState) {
-    // Nếu vừa có mạng lại: Báo trên màn hình 2 giây
-    lcd.clear();
-    lcd.setCursor(0, 0); lcd.print("WIFI CONNECTED! ");
-    delay(2000); 
-    lcd.clear();
+  // Khong ghi de LCD khi AUTO hoac KICH AM dang chay
+  if (!autoRunning && !kichAmRunning) {
+    if (!currentState) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(">> WIFI OFF <<");
+      lcd.setCursor(0, 1);
+      lcd.print("Dang ket noi...");
+    }
+    else if (!lastWiFiState) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("WIFI CONNECTED!");
+      delay(2000);
+      lcd.clear();
+    }
   }
 
   lastWiFiState = currentState;
 }
+
+
 void delayWithCheck(unsigned long duration) {
-    unsigned long start = millis();
-    while (millis() - start < duration) {
-        
-        // ================= THOÁT KHẨN =================
-        if (triggerOTA || (!kichAmRunning && thresholdChanged) || (stopAuto && !kichAmRunning)) break;
-        
-        // ================= CẬP NHẬT HỆ THỐNG =================
-        sht30.get();
-        if (!autoRunning) Display();
-        
-        Blynk.run();
-        
-        // Lệnh timer.run() này sẽ tự động gọi hàm checkWiFiStatus ngầm để báo lỗi mất mạng!
-        timer.run(); 
-        
-        webServer.handleClient();
-        yield();
+  unsigned long start = millis();
+
+  while (millis() - start < duration) {
+
+    // Thoát khi có yêu cầu dừng
+    if (triggerOTA ||
+        (!kichAmRunning && thresholdChanged) ||
+        (stopAuto && !kichAmRunning)) {
+      break;
     }
+
+    // Luôn cập nhật nhiệt độ và độ ẩm,
+    // kể cả khi AUTO đang chạy quy trình dài
+    Display();
+
+    Blynk.run();
+    timer.run();
+    webServer.handleClient();
+
+    yield();
+  }
 }
+
+
 // Hàm lấy và làm đẹp chuỗi thời gian
 String getUpdateTimestamp() {
   time_t now = time(nullptr);
